@@ -6,6 +6,13 @@ To install dependencies:
 bun install
 ```
 
+Create a `.env` file:
+
+```bash
+DATABASE_URL="YOUR_POSTGRES_DATABASE_URL"
+PURE_API_KEY="YOUR_KEY"
+```
+
 To run:
 
 ```bash
