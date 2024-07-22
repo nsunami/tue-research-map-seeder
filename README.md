@@ -1,5 +1,11 @@
 # tue-research-map-seeder
 
+The script here seeds a database with TU/e organizations and researchers, available at Pure Portal: https://research.tue.nl/
+
+The data is sourced from [Pure API](https://pure.tue.nl/ws/api/api-docs/index.html?url=/ws/api/openapi.yaml#/).
+
+The goal is to create a organizational diagram with relationships between organizations and persons.
+
 To install dependencies:
 
 ```bash
