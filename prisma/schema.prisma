@@ -48,7 +48,7 @@ model Organization {
   membership OrganizationMembership[]
   pureUuid   String                   @unique
   name       String
-  shortName  String
+  shortName  String?
   typeUri    String
   type       String
 
