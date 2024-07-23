@@ -14,14 +14,14 @@ datasource db {
 }
 
 model Person {
-  id              String                   @id @default(uuid())
-  pureUuid        String                   @unique
-  orcid           String?                  @unique
-  firstName       String
-  lastName        String
-  portalUrl       String
-  profilePhotoUrl String
-  organization    OrganizationMembership[]
+  id                     String                   @id @default(uuid())
+  pureUuid               String                   @unique
+  orcid                  String?                  @unique
+  firstName              String
+  lastName               String
+  portalUrl              String
+  profilePhotoUrl        String?
+  organizationMembership OrganizationMembership[]
 }
 
 model OrganizationMembership {
