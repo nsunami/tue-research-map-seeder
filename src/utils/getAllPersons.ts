@@ -11,35 +11,17 @@ export async function getAllPersons({
   maxPages,
   baseUrl,
 }: GetAllPersonsProps) {
-  function createRequest(pageSize: number, offset: number) {
-    const params = new URLSearchParams({
-      size: pageSize.toString(),
-      offset: offset.toString(),
-    })
-
-    const currentUrl = new URL(`persons?${params}`, baseUrl)
-    const headers = new Headers({
-      "api-key": process.env.PURE_API_KEY as string,
-    })
-    const controller = new AbortController()
-    return fetch(currentUrl, {
-      headers,
-      signal: controller.signal,
-    })
-      .then((res) => {
-        return res.json()
-      })
-      .finally(() => {
-        console.log("fetched from", offset, "to", offset + pageSize)
-      })
-  }
-
-  console.log(maxPages, "pages to fetch")
-
   const fetchPersonsRequests = Array.from(
     { length: maxPages },
     (_, i) => i
-  ).map((pageIndex) => createRequest(pageSize, pageIndex * pageSize))
+  ).map((pageIndex) =>
+    createRequest({
+      pageSize: pageSize,
+      offset: pageIndex * pageSize,
+      baseUrl,
+      targetEndpoint: "persons",
+    })
+  )
 
   // ~5700 pages to fetch
   // Total record is ~57_000
