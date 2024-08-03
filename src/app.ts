@@ -37,7 +37,7 @@ async function main() {
     })
   })
 
-  await createPersons({ db, baseUrl, limitPages: 1 })
+  await createPersons({ db, baseUrl })
 }
 
 main()
