@@ -3,6 +3,7 @@
 import type { Prisma, PrismaClient } from "@prisma/client"
 import { countPersons, getAllPersons } from "./getAllPersons"
 import type { PersonsResponseData } from "../types/Person"
+import ora from "ora"
 
 type CreatePersonsProps = {
   db: PrismaClient
@@ -26,8 +27,7 @@ export async function createPersons({
   })) as PersonsResponseData[]
   const persons = personsResponses.flatMap((response) => response.items)
 
-  console.log(`⏳ Creating persons...`)
-
+  const personsSpinner = ora("Creating persons")
   const personsResults = await db.person.createMany({
     data: persons.map((p) => {
       return {
@@ -41,10 +41,12 @@ export async function createPersons({
     }),
     skipDuplicates: true,
   })
-  console.log(personsResults)
-  console.log(`✅ Created ${personsResults} persons`)
+  personsSpinner.stopAndPersist({
+    symbol: "✅",
+    suffixText: `✅ Created ${personsResults.count} persons`,
+  })
 
-  console.log("⌛ Creating membership entries for persons...")
+  const membershipSpinner = ora("Creating membership entries").start()
 
   const existingPersonsIds = await db.person.findMany({
     select: { id: true, pureUuid: true },
@@ -77,9 +79,12 @@ export async function createPersons({
     })
   }) as Prisma.OrganizationMembershipCreateManyInput[]
 
-  await db.organizationMembership.createMany({
+  const membershipResults = await db.organizationMembership.createMany({
     data: membershipCreateManyInput,
     skipDuplicates: true,
   })
-  console.log("...✅ Done")
+  membershipSpinner.stopAndPersist({
+    symbol: "✅",
+    suffixText: `➡️ ${membershipResults.count} memberships created`,
+  })
 }
