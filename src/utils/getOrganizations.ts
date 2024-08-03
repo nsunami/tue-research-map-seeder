@@ -1,6 +1,10 @@
 import type { OrganizationResponseData } from "../types/Organization"
 
-export async function getOrganizations() {
+type GetOrganizationsProps = {
+  baseUrl: string
+}
+
+export async function getOrganizations({ baseUrl }: GetOrganizationsProps) {
   const PAGE_SIZE = 50
 
   const controller = new AbortController()
@@ -13,7 +17,6 @@ export async function getOrganizations() {
     size: PAGE_SIZE.toString(),
   })
 
-  const baseUrl = "https://pure.tue.nl/ws/api/"
   const organizationsUrl = new URL(`organizations?${params}`, baseUrl)
 
   const organizationsRequest = new Request(organizationsUrl, {
