@@ -1,3 +1,4 @@
+import ora from "ora"
 import type { OrganizationResponseData } from "../types/Organization"
 import { createRequest } from "./createRequest"
 
@@ -33,10 +34,6 @@ export async function getOrganizations({ baseUrl }: GetOrganizationsProps) {
   const totalPages = Math.ceil(totalOrganizations / PAGE_SIZE)
   const pageSize = organizationResponseData.pageInformation.size
 
-  console.log("Page size:", organizationResponseData.pageInformation.size)
-  console.log("Total organizations:", totalOrganizations)
-  console.log("Total pages:", totalPages + 1)
-
   const organizationsPromises = Array.from(
     { length: totalPages },
     (_, i) => i
@@ -49,19 +46,15 @@ export async function getOrganizations({ baseUrl }: GetOrganizationsProps) {
     })
   )
 
+  const spinner = ora("Fetching organizations").start()
   const organizationsResponses = (await Promise.all(
     organizationsPromises
   )) as OrganizationResponseData[]
   const organizations = organizationsResponses.flatMap((r) => r.items)
+  spinner.stopAndPersist({
+    symbol: "✅",
+    suffixText: `➡️ ${organizations.length} organizations fetched`,
+  })
 
-  console.log(organizations.length, "organizations fetched")
-
-  const duplicates = organizations.filter((v, i, a) => a.indexOf(v) !== i)
-  if (duplicates.length > 0) {
-    console.log(duplicates)
-    throw Error("Duplicates detected")
-  } else {
-    console.log("✅ No duplicates")
-  }
   return organizations
 }
