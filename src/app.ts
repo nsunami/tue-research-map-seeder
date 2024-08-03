@@ -20,14 +20,17 @@ async function main() {
     }
   })
 
-  await db.organization
-    .createMany({
-      data: orgInputData,
-      skipDuplicates: true,
-    })
-    .then((res) => console.log(`Created ${res.count} new organizations`))
+  const createdOrgs = await db.organization.createMany({
+    data: orgInputData,
+    skipDuplicates: true,
+  })
+  if (createdOrgs.count > 0) {
+    console.log(`✅ Created ${createdOrgs.count} new organizations`)
+  } else {
+    console.log("⏩ No new organizations created")
+  }
 
-  // Connecting organizations
+  // Connecting organizations with each other
   organizations.forEach(async (o) => {
     await db.organization.update({
       where: { pureUuid: o.uuid },
