@@ -1,4 +1,5 @@
 import type { OrganizationResponseData } from "../types/Organization"
+import { createRequest } from "./createRequest"
 
 type GetOrganizationsProps = {
   baseUrl: string
@@ -29,38 +30,29 @@ export async function getOrganizations({ baseUrl }: GetOrganizationsProps) {
   )) as OrganizationResponseData
 
   const totalOrganizations = organizationResponseData.count
-  const totalPages = Math.ceil(
-    totalOrganizations / organizationResponseData.pageInformation.size
-  )
+  const totalPages = Math.ceil(totalOrganizations / PAGE_SIZE)
   const pageSize = organizationResponseData.pageInformation.size
 
   console.log("Page size:", organizationResponseData.pageInformation.size)
   console.log("Total organizations:", totalOrganizations)
   console.log("Total pages:", totalPages + 1)
 
-  let organizations = []
-  for (let pageIndex = 0; pageIndex <= totalPages; pageIndex++) {
-    let offset = pageSize * pageIndex
+  const organizationsPromises = Array.from(
+    { length: totalPages },
+    (_, i) => i
+  ).map((i) =>
+    createRequest({
+      pageSize,
+      offset: i * pageSize,
+      baseUrl,
+      targetEndpoint: "organizations",
+    })
+  )
 
-    params.set("offset", offset.toString())
-
-    const currentUrl = new URL(`organizations?${params}`, baseUrl)
-    const res = (await fetch(currentUrl, {
-      headers,
-      signal: controller.signal,
-    }).then((res) => res.json())) as OrganizationResponseData
-
-    console.log(
-      "Fetched from",
-      res.pageInformation.offset + 1,
-      "to",
-      res.pageInformation.offset + res.pageInformation.size,
-      `(page ${pageIndex + 1}/${totalPages + 1})`
-    )
-
-    if (res.items.length == 0) break
-    organizations.push(...res.items)
-  }
+  const organizationsResponses = (await Promise.all(
+    organizationsPromises
+  )) as OrganizationResponseData[]
+  const organizations = organizationsResponses.flatMap((r) => r.items)
 
   console.log(organizations.length, "organizations fetched")
 
