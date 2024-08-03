@@ -1,11 +1,13 @@
-import { Prisma, PrismaClient, type Organization } from "@prisma/client"
+import { PrismaClient } from "@prisma/client"
 import { getOrganizations } from "./utils/getOrganizations"
+import { createPersons } from "./utils/createPersons"
 
 const db = new PrismaClient()
 
 async function main() {
   // Get all the TU/e Organizations
-  const organizations = await getOrganizations()
+  const baseUrl = "https://pure.tue.nl/ws/api/"
+  const organizations = await getOrganizations({ baseUrl })
 
   const orgInputData = organizations.map((o) => {
     return {
@@ -23,7 +25,7 @@ async function main() {
       data: orgInputData,
       skipDuplicates: true,
     })
-    .then((res) => console.log("Created records", res))
+    .then((res) => console.log(`Created ${res.count} new organizations`))
 
   // Connecting organizations
   organizations.forEach(async (o) => {
@@ -34,6 +36,8 @@ async function main() {
       },
     })
   })
+
+  await createPersons({ db, baseUrl, limitPages: 1 })
 }
 
 main()
