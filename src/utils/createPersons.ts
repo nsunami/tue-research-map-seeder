@@ -26,86 +26,60 @@ export async function createPersons({
   })) as PersonsResponseData[]
   const persons = personsResponses.flatMap((response) => response.items)
 
-  await db.person
-    .createMany({
-      data: persons.map((p) => {
-        return {
-          pureUuid: p.uuid,
-          firstName: p.name?.firstName,
-          lastName: p.name.lastName,
-          portalUrl: p.portalUrl,
-          profilePhotoUrl: p?.profilePhotos?.[0].url,
-          orcid: p?.orcid,
-        }
-      }),
-      skipDuplicates: true,
-    })
-    .then(() => {
-      console.log(`✅ Created ${persons.length} persons`)
-    })
+  console.log(`⏳ Creating persons...`)
 
-  console.log("⌛ Creating membership entries for persons...")
-  const memberships = persons.flatMap((p) => p.staffOrganizationAssociations)
-  const membershipData = memberships.flatMap((o) => {
-    if (o == null) return []
-    return {
-      pureId: o.pureId,
-      email: o?.emails?.[0]?.value,
-      startDate: new Date(o.period.startDate),
-      endDate: o?.period?.endDate && new Date(o?.period?.endDate),
-      primaryAssociation: o.primaryAssociation,
-      jobTitleUri: o?.jobTitle?.uri,
-      jobTitle: o?.jobTitle?.term.en_GB,
-      staffTypeUri: o?.staffType?.uri,
-      staffType: o?.staffType?.term.en_GB,
-    }
-  }) as Prisma.OrganizationMembershipCreateManyInput[]
-  await db.organizationMembership.createMany({
-    data: membershipData,
+  const personsResults = await db.person.createMany({
+    data: persons.map((p) => {
+      return {
+        pureUuid: p.uuid,
+        firstName: p.name?.firstName,
+        lastName: p.name.lastName,
+        portalUrl: p.portalUrl,
+        profilePhotoUrl: p?.profilePhotos?.[0].url,
+        orcid: p?.orcid,
+      }
+    }),
     skipDuplicates: true,
   })
-  console.log("...✅ Done")
+  console.log(personsResults)
+  console.log(`✅ Created ${personsResults} persons`)
 
-  console.log("⏳ Connecting persons with memberships...")
-  const connectPersonsWithOrgsPromises = persons.flatMap((p) => {
-    if (p.staffOrganizationAssociations == null) return []
+  console.log("⌛ Creating membership entries for persons...")
 
-    const pureIds = p.staffOrganizationAssociations.map((m) => ({
-      pureId: m.pureId,
-    }))
-
-    return db.person.update({
-      where: { pureUuid: p.uuid },
-      data: {
-        organizationMembership: {
-          connect: pureIds,
-        },
-      },
-    })
+  const existingPersonsIds = await db.person.findMany({
+    select: { id: true, pureUuid: true },
+  })
+  const existingOrgsIds = await db.organization.findMany({
+    select: { id: true, pureUuid: true },
   })
 
-  const connectOrgsWithPersonsPromises = persons.flatMap((p) => {
-    if (p.staffOrganizationAssociations == null) return []
-    return p.staffOrganizationAssociations.map((org) => {
-      return db.organizationMembership.update({
-        where: { pureId: org.pureId },
-        data: {
-          person: {
-            connect: { pureUuid: p.uuid },
-          },
-          organization: {
-            connect: {
-              pureUuid: org.organization.uuid,
-            },
-          },
-        },
-      })
+  const membershipCreateManyInput = persons.flatMap((p) => {
+    if (p?.staffOrganizationAssociations == null) return []
+    return p.staffOrganizationAssociations.flatMap((o) => {
+      if (o == null) return []
+      return {
+        pureId: o.pureId,
+        email: o?.emails?.[0]?.value,
+        startDate: new Date(o.period.startDate),
+        endDate: o?.period?.endDate && new Date(o?.period?.endDate),
+        primaryAssociation: o.primaryAssociation,
+        jobTitleUri: o?.jobTitle?.uri,
+        jobTitle: o?.jobTitle?.term.en_GB,
+        staffTypeUri: o?.staffType?.uri,
+        staffType: o?.staffType?.term.en_GB,
+        organizationId: existingOrgsIds.find(
+          (existing) => existing.pureUuid === o.organization.uuid
+        )?.id,
+        personId: existingPersonsIds.find(
+          (existing) => existing.pureUuid === p.uuid
+        )?.id,
+      }
     })
-  })
+  }) as Prisma.OrganizationMembershipCreateManyInput[]
 
-  await db.$transaction([
-    ...connectPersonsWithOrgsPromises,
-    ...connectOrgsWithPersonsPromises,
-  ])
+  await db.organizationMembership.createMany({
+    data: membershipCreateManyInput,
+    skipDuplicates: true,
+  })
   console.log("...✅ Done")
 }
