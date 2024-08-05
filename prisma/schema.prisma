@@ -53,6 +53,20 @@ model Organization {
   typeUri    String
   type       String
 
+  contact OrganizationContact[]
+
   parents  Organization[] @relation("OrganizationRelation")
   children Organization[] @relation("OrganizationRelation")
+}
+
+model OrganizationContact {
+  id String @id @default(cuid())
+
+  email   String
+  pureId  BigInt @unique
+  type    String
+  typeUri String
+
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organizationId String?
 }
