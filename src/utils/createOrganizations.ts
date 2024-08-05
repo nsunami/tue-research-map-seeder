@@ -1,6 +1,5 @@
-import type { PrismaClient } from "@prisma/client/extension"
 import { getOrganizations } from "./getOrganizations"
-import type { Prisma } from "@prisma/client"
+import type { Prisma, PrismaClient } from "@prisma/client"
 
 type CreateOrganizationsProps = {
   db: PrismaClient
@@ -33,6 +32,29 @@ export async function createOrganizations({
   } else {
     console.log("⏩ No new organizations created")
   }
+
+  const currentOrgs = await db.organization.findMany({
+    select: {
+      id: true,
+      pureUuid: true,
+    },
+  })
+
+  const contacts = organizations.flatMap((o) => {
+    if (o.emails == null) return []
+    return o.emails?.map((e) => ({
+      email: e.value,
+      pureId: e.pureId,
+      type: e.type.term.en_GB,
+      typeUri: e.type.uri,
+      organizationId: currentOrgs.find((cur) => cur.pureUuid === o.uuid)?.id,
+    })) as Prisma.OrganizationContactCreateManyInput[]
+  })
+
+  await db.organizationContact.createMany({
+    data: contacts,
+    skipDuplicates: true,
+  })
 
   // Connecting organizations with each other
   organizations.forEach(async (o) => {
