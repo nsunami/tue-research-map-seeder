@@ -63,7 +63,7 @@ model OrganizationContact {
   id String @id @default(cuid())
 
   email   String
-  pureId  String
+  pureId  BigInt @unique
   type    String
   typeUri String
 
